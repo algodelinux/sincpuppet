@@ -1,0 +1,76 @@
+#!/bin/bash
+# Script para tratar de realizar la sincronización del cliente puppet
+# Colocar en /etc/network/if-up.d/ para que se ejecute al levantar el interfaz de red
+# Esteban M. Navas Martín
+# Modificado: 15/02/2015
+# Modificado: 19/05/2016
+
+# Controlamos la ejecución manual o automática de sinc_puppet
+ENABLE=yes
+[ -r /etc/default/sincpuppet ] && . /etc/default/sincpuppet
+if [ "$ENABLE" == "no" ] || [ ! "$ENABLE" ]; then
+  echo " * [info]: La aplicación 'sinc_puppet' está desactivada en /etc/default/sincpuppet."
+  echo "           Para activarla poner el valor ENABLE=yes."
+  exit 0
+fi
+
+# Número máximo de segundos sin sincronizar con el servidor puppet
+MAXTIME=`expr $INTERVAL \* 3600`
+
+# Calculamos la diferencia
+uno=$(stat -c %Y  /var/log/syslog)
+dos=$(stat -c %Y /var/lib/puppet/state/state.yaml)
+dife=$((uno-dos))
+
+# Aseguramos paquetes
+dpkg --configure -a && apt-get -yf install && apt-get -y autoremove
+
+echo "La última sincronización con PUPPET fue hace: "$(($dife / 3600)) "horas" | logger -s -t $0
+echo "Intervalo de sincronización con PUPPET: $INTERVAL horas" | logger -s -t $0
+echo
+
+# Salimos si no se ha alcanzado el tiempo máximo sin sincronizar con PUPPET
+if [ $dife -lt $MAXTIME ]; then exit 0; fi
+
+ping -c 1 $PING_SERVER >/dev/null 2>&1
+ERROR=$?
+MAX=0
+
+until [ $ERROR -eq "0" ] || [ $MAX -eq $PING_TRIES ]; do
+ echo "Falló Ping al servidor Puppet. Nuevo intento en $PING_INTERVAL segundos....." | logger -s -t $0
+ MAX=`expr $MAX + 1`
+ sleep $PING_INTERVAL
+ ping -c 1 $PING_SERVER >/dev/null 2>&1
+ ERROR=$?
+done
+
+if [ $MAX -eq $PING_TRIES ]; then
+ echo "Imposible contactar con el servidor....." | logger -s -t $0
+ exit 5
+fi
+
+# Activamos puppet, por si estuviera desactivado
+puppet agent --enable
+
+# Si no existe el certificado del cliente, ejecutamos puppet tratando de recibir un certificado
+test -f /var/lib/puppet/ssl/certs/$(hostname -f).pem
+if [ $? -eq "1" ]; then
+   puppet agent --test --waitforcert 60 >/dev/null 2>&1
+   exit 0
+fi
+
+#Si ha estado más de MAXTIME segundos sin sincronizar con puppet
+if [ $dife -gt  $MAXTIME ]; then
+ echo "Conexión con servidor de puppet. Esperando $SPLAYLIMIT para puppet....." | logger -s -t $0
+ puppet agent --onetime --no-daemonize --splay --splaylimit $SPLAYLIMIT
+
+ while [ $? -eq "1" ]; do
+   test -f /var/lib/puppet/state/puppetdlock && rm -f /var/lib/puppet/state/puppetdlock
+   rm -rf /var/lib/puppet/ssl/certs/$(hostname -f).pem
+   echo "FALLO Puppet. Nuevo intento en 30 segundos" | logger -s -t $0
+   puppet agent --test --waitforcert 60 >/dev/null 2>&1
+ done
+fi
+echo "Sistema PUPPET correcto" | logger -s -t $0 
+
+exit 0
