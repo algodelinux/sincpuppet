@@ -2,8 +2,56 @@
 # Script para tratar de realizar la sincronización del cliente puppet
 # Colocar en /etc/network/if-up.d/ para que se ejecute al levantar el interfaz de red
 # Esteban M. Navas Martín
-# Modificado: 15/02/2015
-# Modificado: 19/05/2016
+# Fecha última modificación: 14/11/2016
+
+
+function dosync {
+  if [ "$1" == "-f" ] && [ "$2" == "now" ]; then
+     echo "Conexión con servidor de puppet. Sincronizando puppet....." | logger -s -t $0
+     puppet agent --onetime --no-daemonize >/dev/null 2>&1
+     if [ $? -eq "0" ]; then
+        echo "Sistema PUPPET correcto" | logger -s -t $0
+        exit 0
+     fi
+  else
+     echo "Conexión con servidor de puppet." | logger -s -t $0
+     echo "Esperando un tiempo máximo de $SPLAYLIMIT para sincronizar puppet....." | logger -s -t $0
+     puppet agent --onetime --no-daemonize --splay --splaylimit $SPLAYLIMIT >/dev/null 2>&1
+     if [ $? -eq "0" ]; then
+        echo "Sistema PUPPET correcto" | logger -s -t $0
+        exit 0
+     fi
+  fi
+}
+
+# Obtenemos los parámetros posicionales del script
+force=$1
+now=$2
+
+# Matamos procesos detenidos
+stopped_processes=$(ps auwx | awk 'NR>1 && $8 ~ "T" {print $2}')
+if [ "$stopped_processes" ]; then kill -9 $stopped_processes; fi
+
+# Matamos todos los procesos de sinc_puppet excepto el último que se haya
+sinc_puppet_processes=$(pgrep -c sinc_puppet)
+if [ "$sinc_puppet_processes" -gt "1" ]; then kill -9 $(pgrep sinc_puppet | head -n -1); fi
+
+# Nos aseguramos de que sólo exista una instancia de sinc_puppet corriendo
+lockfile=/tmp/sincpuppet
+
+# Eliminar fichero de bloqueo al salir
+trap "lockfile-remove $lockfile; exit" INT TERM EXIT
+
+lockfile-check $lockfile
+if [ $? -eq 0 ] ; then
+    # Si existe el fichero de bloqueo
+    # echo >&2 "lock not acquired, giving up: $lockfile"
+    exit 1
+else
+    # Si no existe el fichero de bloqueo
+    lockfile-create $lockfile         # Creamos el fichero de bloqueo
+    # echo "lock acquired: $lockfile"
+fi
 
 # Controlamos la ejecución manual o automática de sinc_puppet
 ENABLE=yes
@@ -12,6 +60,11 @@ if [ "$ENABLE" == "no" ] || [ ! "$ENABLE" ]; then
   echo " * [info]: La aplicación 'sinc_puppet' está desactivada en /etc/default/sincpuppet."
   echo "           Para activarla poner el valor ENABLE=yes."
   exit 0
+fi
+
+# Si no se ha definido el parámetro WAITFORCERT en el fichero de configuración, le establecemos un valor por defecto
+if [ -z "$WAITFORCERT" ]; then
+   WAITFORCERT="30"
 fi
 
 # Número máximo de segundos sin sincronizar con el servidor puppet
@@ -29,8 +82,8 @@ echo "La última sincronización con PUPPET fue hace: "$(($dife / 3600)) "horas"
 echo "Intervalo de sincronización con PUPPET: $INTERVAL horas" | logger -s -t $0
 echo
 
-# Salimos si no se ha alcanzado el tiempo máximo sin sincronizar con PUPPET
-if [ $dife -lt $MAXTIME ]; then exit 0; fi
+# Salimos si no se ha alcanzado el tiempo máximo sin sincronizar con PUPPET o no se ha forzado la ejecución
+if [ $dife -lt $MAXTIME ] || [ $# -eq 1 ] && [ "$1" != "-f" ]; then exit 0; fi
 
 ping -c 1 $PING_SERVER >/dev/null 2>&1
 ERROR=$?
@@ -46,31 +99,31 @@ done
 
 if [ $MAX -eq $PING_TRIES ]; then
  echo "Imposible contactar con el servidor....." | logger -s -t $0
- exit 5
+ exit $MAX
 fi
 
 # Activamos puppet, por si estuviera desactivado
 puppet agent --enable
 
 # Si no existe el certificado del cliente, ejecutamos puppet tratando de recibir un certificado
-test -f /var/lib/puppet/ssl/certs/$(hostname -f).pem
-if [ $? -eq "1" ]; then
-   puppet agent --test --waitforcert 60 >/dev/null 2>&1
-   exit 0
+uuid=$(sed -n 's|certname=\(.*\)|\1|p' /usr/share/linex-ubuntu-puppet/puppet.conf)
+
+if [ -z "$uuid" ]; then
+   uuid=$(/usr/bin/uuidgen -t) && sed -i "/server=puppetinstituto/a certname=$uuid" /usr/share/linex-ubuntu-puppet/puppet.conf
+   echo "Se ha generado un nuevo uuid para este host: $uuid" | logger -s -t $0
+   find /var/lib/puppet/ssl/ -type f -name *.pem -not -name ca.pem -not -name crl.pem -exec rm -f {} \;
+
+   dosync $force $now
 fi
 
-#Si ha estado más de MAXTIME segundos sin sincronizar con puppet
-if [ $dife -gt  $MAXTIME ]; then
- echo "Conexión con servidor de puppet. Esperando $SPLAYLIMIT para puppet....." | logger -s -t $0
- puppet agent --onetime --no-daemonize --splay --splaylimit $SPLAYLIMIT
+test -f /var/lib/puppet/ssl/certs/$uuid.pem
+if [ $? -eq "0" ]; then
 
- while [ $? -eq "1" ]; do
-   test -f /var/lib/puppet/state/puppetdlock && rm -f /var/lib/puppet/state/puppetdlock
-   rm -rf /var/lib/puppet/ssl/certs/$(hostname -f).pem
-   echo "FALLO Puppet. Nuevo intento en 30 segundos" | logger -s -t $0
-   puppet agent --test --waitforcert 60 >/dev/null 2>&1
- done
+   dosync $force $now
+else
+   [ -f /var/lib/puppet/state/puppetdlock ] && rm -f /var/lib/puppet/state/puppetdlock
+   uuid=$(/usr/bin/uuidgen -t) && sed -i "s/certname=.*/certname=$uuid/" /usr/share/linex-ubuntu-puppet/puppet.conf
+   find /var/lib/puppet/ssl/ -type f -name *.pem -not -name $uuid.pem -not -name ca.pem -not -name crl.pem -exec rm -f {} \;
+
+   dosync $force $now
 fi
-echo "Sistema PUPPET correcto" | logger -s -t $0 
-
-exit 0
