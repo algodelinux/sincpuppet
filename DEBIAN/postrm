@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+
+PKG="linex-ubuntu-puppet"
+SHAREDIR="/usr/share/linex-ubuntu-puppet"
+
+
+remove_divert() {
+    diverter=$(dpkg-divert --listpackage $1)
+    if [ "$diverter" = "linex-ubuntu-puppet" ]; then
+        dpkg-divert --package linex-ubuntu-puppet --rename --remove $1
+    fi
+}
+
+
+if [ "$1" = remove ]; then
+  remove_divert /etc/puppet/puppet.conf
+
+fi
+
+if [ "$1" = purge ]; then
+        update-rc.d sincpuppet remove
+fi
+exit 0
+

@@ -8,15 +8,19 @@
 ENABLE="yes"
 
 # Número máximo de horas sin sincronizar con el servidor puppet
+# INTERVAL="12" # horas
 INTERVAL="12" # horas
 
 # Nombre DNS del servidor al que realizar ping para comprobar que estamos en el centro
+# PING_SERVER="puppetinstituto"
 PING_SERVER="puppetinstituto"
 
 # Intervalo para volver a realizar ping en segundos
+# PING_INTERVAL="30" # segundos
 PING_INTERVAL="30" # segundos
 
 # Número máximo de ping a realizar antes de dejar de intentar sincronizar con puppet
+# PING_TRIES="3"
 PING_TRIES="3"
 
 # Definimos un tiempo máximo en minutos para retrasar la sincronización con el servidor
@@ -24,5 +28,9 @@ PING_TRIES="3"
 # Básicamente sirve para evitar que muchas peticiones simultáneas de clientes saturen al servidor
 # Este ajuste puede definirse en segundos (30 or 30s), minutos (30m), horas (6h),
 # días (2d), o años (5y).
+# SPLAYLIMIT="3m"
 SPLAYLIMIT="3m"
 
+# 'puppet agent' conectará con el servidor en intervalos de 'WAITFORCERT' segundos para pedir un certificado al servidor
+# WAITFORCERT="30"
+WAITFORCERT="30"

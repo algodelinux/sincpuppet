@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+PKG="linex-ubuntu-puppet"
+SHAREDIR="/usr/share/linex-ubuntu-puppet"
+
+divert() {
+    diverted_file=$1
+
+    dpkg-divert --package "$PKG" --add --rename \
+        --divert "${diverted_file}-pre-$PKG" $diverted_file
+}
+
+divert /etc/puppet/puppet.conf
+
+ln -sf /usr/share/linex-ubuntu-puppet/puppet.conf /etc/puppet/puppet.conf
+
+exit 0
+

@@ -1,0 +1,12 @@
+Package: linex-ubuntu-puppet
+Version: 2.13
+Architecture: all
+Maintainer: Esteban M. Navas Martín <algodelinux@gmail.com>
+Installed-Size: 67
+Depends: puppet, puppet-common, pkgsync, lockfile-progs, uuid-runtime
+Section: x11
+Priority: optional
+Description: Configuración del cliente puppet
+ Instalación de las dependencias del cliente de puppet,
+ junto con la configuración necesaria para dicho cliente
+ en el entorno de un centro educativo.

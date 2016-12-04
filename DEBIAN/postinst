@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+
+#  update-rc.d sincpuppet defaults
+#  invoke-rc.d sincpuppet start
+
+mkdir -p /etc/pkgsync
+touch /etc/pkgsync/mayhave
+touch /etc/pkgsync/maynothave
+
+invoke-rc.d puppet stop
+update-rc.d -f puppet remove
+update-rc.d -f sincpuppet remove
+
+ln -sf /usr/share/linex-ubuntu-puppet/escuela2.0 /etc/escuela2.0
+ln -sf /usr/share/linex-ubuntu-puppet/puppet.conf /etc/puppet/puppet.conf
+
+productname=`facter productname`
+
+case $productname in
+ "HP ProDesk 600 G2 SFF")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=infolab/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=infolab' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "HP ProDesk 600 G1 SFF")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=siatic/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=siatic' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "HP x360 310 G2 PC")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=x360/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=notebookHP' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "HP ProBook 4510s")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=HP-ProBook/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=HP-ProBook' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "P5Q DELUXE")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=Telefonica/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=Telefonica' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "8317KLG"|"8317KHG")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=ibm/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=ibm' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "8317KLG"|"TravelMate 5735Z")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=Travelmate/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=Travelmate' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "G41MT-S2")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=workstation/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=workstation' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "AO532h")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=notebookACER/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=notebookACER' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "N148P")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=notebookXTREM/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=notebookXTREM' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+ "To be filled by O.E.M.")
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=notebookAPD/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=notebookAPD' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+*)
+  grep -q '^tipo=' /usr/share/linex-ubuntu-puppet/escuela2.0 && sed -i 's/^tipo=.*/tipo=otros/' /usr/share/linex-ubuntu-puppet/escuela2.0 || echo 'tipo=otros' >> /usr/share/linex-ubuntu-puppet/escuela2.0
+  ;;
+esac
+
+exit 0
