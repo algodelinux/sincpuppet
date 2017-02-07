@@ -1,3 +1,3 @@
-usr/share/linex-ubuntu-puppet/puppet.conf
 /usr/share/linex-ubuntu-puppet/escuela2.0
-/etc/default/sincpuppet
+/usr/share/linex-ubuntu-puppet/puppet.conf
+/usr/share/linex-ubuntu-puppet/sincpuppet.default

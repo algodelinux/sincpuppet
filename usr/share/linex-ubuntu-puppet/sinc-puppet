@@ -1,0 +1,7 @@
+#!/bin/bash
+# Colocar /etc/network/if-up.d/ para lanzar sinc_puppet cuando se levanta la interfaz de red.
+
+[ "$IFACE" != "lo" ] || exit 0
+
+   /usr/sbin/sinc_puppet &
+

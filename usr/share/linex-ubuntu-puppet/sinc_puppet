@@ -1,11 +1,13 @@
 #!/bin/bash
 # Script para tratar de realizar la sincronización del cliente puppet
 # Colocar en /etc/network/if-up.d/ para que se ejecute al levantar el interfaz de red
+# Desde AdministracionSI no colocamos el fichero directamente en /etc/network/if-up.d/. En su lugar se coloca sinc-puppet para evitar retardos en la activación de interfaces de red.
 # Esteban M. Navas Martín
-# Fecha última modificación: 30/11/2016
+# Fecha última modificación: 20/12/2016
+# Modificado por Administracionsi: 03/02/2017
 
 export DEBIAN_FRONTEND=noninteractive
-export VERSION=2.13
+export VERSION=2.16
 
 SCRIPT=`basename "$0"`
 
@@ -96,13 +98,18 @@ fi
 stopped_processes=$(ps auwx | awk 'NR>1 && $8 ~ "T" {print $2}')
 if [ "$stopped_processes" ]; then kill -9 $stopped_processes; fi
 
-# Matamos todos los procesos de sinc_puppet excepto el último que se haya
-sinc_puppet_processes=$(pgrep -c sinc_puppet)
-if [ "$sinc_puppet_processes" -gt "1" ]; then kill -9 $(pgrep sinc_puppet | head -n -1); fi
-
-# Nos aseguramos de que sólo exista una instancia de sinc_puppet corriendo
+#Definimos fichero de lock
 lockfile=/tmp/sincpuppet
 
+# Matamos todos los procesos de sinc_puppet excepto el último que se haya
+sinc_puppet_processes=$(pgrep -c sinc_puppet)
+if [ "$sinc_puppet_processes" -gt "1" ]; then
+        kill -9 $(ps -ef|grep "sinc_puppet"|grep -v grep| awk '{print $2}' |grep -v $$) 2>/dev/null
+	#Si matamos con kill -9 todos los procesos sinc_puppet debemos borrar fichero de lock porque sino el proceso actual muere. 
+        lockfile-remove $lockfile
+fi
+
+# Nos aseguramos de que sólo exista una instancia de sinc_puppet corriendo
 # Eliminar fichero de bloqueo al salir
 trap "lockfile-remove $lockfile; exit" INT TERM EXIT
 
@@ -117,6 +124,11 @@ else
     # echo "lock acquired: $lockfile"
 fi
 
+# El parámetro WAITFORCERT ya no se usa. Lo mantenemos temporalmente por si fuera necesario 
+# más adelante
+WAITFORCERT="30"
+LOCALES="es_ES.UTF-8"
+
 # Controlamos la ejecución manual o automática de sinc_puppet
 ENABLE=yes
 [ -r /etc/default/sincpuppet ] && . /etc/default/sincpuppet
@@ -126,10 +138,10 @@ if [ "$ENABLE" == "no" ] || [ ! "$ENABLE" ]; then
   exit 0
 fi
 
-# Si no se ha definido el parámetro WAITFORCERT en el fichero de configuración, le establecemos un valor por defecto
-if [ -z "$WAITFORCERT" ]; then
-   WAITFORCERT="30"
-fi
+# Establecemos los locales por defecto
+export LANG=$LOCALES
+export LANGUAGE="es_ES:es:en"
+export LC_ALL=$LOCALES
 
 # Número máximo de segundos sin sincronizar con el servidor puppet
 MAXTIME=`expr $INTERVAL \* 3600`
@@ -138,6 +150,16 @@ MAXTIME=`expr $INTERVAL \* 3600`
 uno=$(stat -c %Y  /var/log/syslog)
 dos=$(stat -c %Y /var/lib/puppet/state/state.yaml)
 dife=$((uno-dos))
+dife2=0
+
+if [ -f /var/lib/puppet/state/agent_catalog_run.lock ]; then
+   tres=$(stat -c %Y /var/lib/puppet/state/agent_catalog_run.lock)
+   dife2=$((uno-tres))
+fi
+
+if [ $dife2 -gt $MAXTIME ]; then
+   rm -f /var/lib/puppet/state/agent_catalog_run.lock
+fi
 
 solveapterrors
 
@@ -191,6 +213,14 @@ test -f /var/lib/puppet/ssl/certs/$uuid.pem
 if [ $? -eq "0" ]; then
 
    dosync $force $now
+
+   #Si existe el certificado uuid y no se consigue sincronizar. Se sincroniza la hora, se genera un nuevo uuid y se borran todos los certificados dentro de /var/lib/puppet/ssl
+   ntpdate -u servidor 2>/dev/null
+   uuid=$(/usr/bin/uuidgen -t) && sed -i "s/certname=.*/certname=$uuid/" /usr/share/linex-ubuntu-puppet/puppet.conf
+   find /var/lib/puppet/ssl/ -type f -name *.pem -exec rm -f {} \;
+
+   dosync $force $now
+
 else
    [ -f /var/lib/puppet/state/puppetdlock ] && rm -f /var/lib/puppet/state/puppetdlock
    uuid=$(/usr/bin/uuidgen -t) && sed -i "s/certname=.*/certname=$uuid/" /usr/share/linex-ubuntu-puppet/puppet.conf

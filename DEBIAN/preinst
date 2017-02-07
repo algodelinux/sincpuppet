@@ -13,7 +13,4 @@ divert() {
 
 divert /etc/puppet/puppet.conf
 
-ln -sf /usr/share/linex-ubuntu-puppet/puppet.conf /etc/puppet/puppet.conf
-
 exit 0
-
