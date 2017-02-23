@@ -4,10 +4,11 @@
 # Desde AdministracionSI no colocamos el fichero directamente en /etc/network/if-up.d/. En su lugar se coloca sinc-puppet para evitar retardos en la activación de interfaces de red.
 # Esteban M. Navas Martín
 # Fecha última modificación: 20/12/2016
-# Modificado por Administracionsi: 03/02/2017
+# Modificado por Administracionsi: 17/02/2017
 
 export DEBIAN_FRONTEND=noninteractive
-export VERSION=2.16
+export VERSION=2.17
+export PATH="${PATH:+$PATH:}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 SCRIPT=`basename "$0"`
 
