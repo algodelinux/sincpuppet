@@ -1,9 +1,11 @@
-5461340f043167a1bf1c850e655ef748  usr/share/doc/linex-ubuntu-puppet/changelog.gz
+972fa74df763e0a91009ec80b145e9f4  usr/share/doc/linex-ubuntu-puppet/changelog.gz
 17bca89de815984996fb87d9c22dce8f  usr/share/doc/linex-ubuntu-puppet/copyright
 6da326a8f16d882aed080ac0adba7c61  usr/share/linex-ubuntu-puppet/escuela2.0
 dc5c67b5d83e7f5608005fbf56c826ab  usr/share/linex-ubuntu-puppet/leefichero.rb
+3eb34eaf4cb04623f4804d4a82dd8739  usr/lib/ruby/vendor_ruby/facter/readpkgsyncconfig.rb
+aef92efaf949edd141fc9406e4e365df  usr/lib/ruby/vendor_ruby/facter/readsincpuppetconfig.rb
 7b5ff4c0c3ed35109098216971397546  usr/share/linex-ubuntu-puppet/puppet.conf
 85b59e4a5081ee8cef2ed55d4400903a  usr/share/linex-ubuntu-puppet/sincpuppet
-ce7bce626782a3a0ff5d1c36aeb92f13  usr/share/linex-ubuntu-puppet/sinc_puppet
+79f362c9f5c9cd1f16984a8d31e0ddae  usr/share/linex-ubuntu-puppet/sinc_puppet
 b6b0491cab8e0154476b5fb0c51aa830  usr/share/linex-ubuntu-puppet/sinc-puppet
-9eb542c8e59b8a1c5d4d2647c7ba796a  usr/share/linex-ubuntu-puppet/sincpuppet.default
+7f502183e300538b03585845849d6df1  usr/share/linex-ubuntu-puppet/sincpuppet.default

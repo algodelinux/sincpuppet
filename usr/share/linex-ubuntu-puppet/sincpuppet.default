@@ -34,7 +34,3 @@ PING_TRIES="3"
 # días (2d), o años (5y).
 # SPLAYLIMIT="3m"
 SPLAYLIMIT="3m"
-
-# 'puppet agent' conectará con el servidor en intervalos de 'WAITFORCERT' segundos para pedir un certificado al servidor
-# WAITFORCERT="30"
-WAITFORCERT="30"

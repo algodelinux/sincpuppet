@@ -3,11 +3,11 @@
 # Colocar en /etc/network/if-up.d/ para que se ejecute al levantar el interfaz de red
 # Desde AdministracionSI no colocamos el fichero directamente en /etc/network/if-up.d/. En su lugar se coloca sinc-puppet para evitar retardos en la activación de interfaces de red.
 # Esteban M. Navas Martín
-# Fecha última modificación: 20/12/2016
+# Fecha última modificación: 07/07/2017
 # Modificado por Administracionsi: 17/02/2017
 
 export DEBIAN_FRONTEND=noninteractive
-export VERSION=2.17
+export VERSION=2.18
 export PATH="${PATH:+$PATH:}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 SCRIPT=`basename "$0"`
@@ -65,6 +65,8 @@ function dosync {
   fi
 }
 
+# No forzar la ejecución de sinc_puppet por defecto
+FORCE=false
 
 # Leer y procesar argumentos
 while getopts ":f: rvh" opt
@@ -77,6 +79,7 @@ do
  	    exit 0
 	    ;;
         f)  force="-f"
+            FORCE=true
             now=$OPTARG
             ;;
         r)  renew="-r"
@@ -125,14 +128,13 @@ else
     # echo "lock acquired: $lockfile"
 fi
 
-# El parámetro WAITFORCERT ya no se usa. Lo mantenemos temporalmente por si fuera necesario 
-# más adelante
-WAITFORCERT="30"
 LOCALES="es_ES.UTF-8"
 
 # Controlamos la ejecución manual o automática de sinc_puppet
 ENABLE=yes
 [ -r /etc/default/sincpuppet ] && . /etc/default/sincpuppet
+$FORCE && ENABLE=yes
+
 if [ "$ENABLE" == "no" ] || [ ! "$ENABLE" ]; then
   echo " * [info]: La aplicación 'sinc_puppet' está desactivada en /etc/default/sincpuppet."
   echo "           Para activarla poner el valor ENABLE=yes."

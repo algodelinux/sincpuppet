@@ -11,6 +11,7 @@ update-rc.d -f sincpuppet remove
 
 productname=`facter productname`
 tipo=`facter tipo`
+lsbdistcodename=`facter lsbdistcodename`
 
 if [ -z $tipo ]; then
    case $productname in
@@ -41,7 +42,7 @@ if [ -z $tipo ]; then
    esac
 fi
 
-[ -x /bin/systemctl ] &&  systemctl disable puppet.service
+[ -x /bin/systemctl ] && /bin/systemctl disable puppet.service
 
 /usr/sbin/sinc_puppet &
 
